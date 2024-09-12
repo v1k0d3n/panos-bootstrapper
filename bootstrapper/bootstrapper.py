@@ -556,25 +556,28 @@ def get_template_variables():
 def shutdown_session(exception=None):
     db_session.remove()
 
-
-@app.before_first_request
+@app.before_request
 def init_application():
-    # set up logging
-    handler = logging.StreamHandler(sys.stdout)
-    app.logger.addHandler(handler)
-    app.logger.setLevel(logging.DEBUG)
-    print('Init App')
+    global first_request_flag
+    if not first_request_flag:
+        # set up logging
+        handler = logging.StreamHandler(sys.stdout)
+        app.logger.addHandler(handler)
+        app.logger.setLevel(logging.DEBUG)
+        print('Init App')
 
-    import os
-    if not os.path.exists('/var/tmp/.bootstrap_complete'):
-        init_db()
-        print('Importing templates')
-        bootstrapper_utils.import_templates()
-        with open('/var/tmp/.bootstrap_complete', 'w+') as init_complete:
-            init_complete.write('done')
+        import os
+        if not os.path.exists('/var/tmp/.bootstrap_complete'):
+            init_db()
+            print('Importing templates')
+            bootstrapper_utils.import_templates()
+            with open('/var/tmp/.bootstrap_complete', 'w+') as init_complete:
+                init_complete.write('done')
 
-    for f in jinja2_filters.defined_filters:
-        app.jinja_env.filters[f] = getattr(jinja2_filters, f)
+        for f in jinja2_filters.defined_filters:
+            app.jinja_env.filters[f] = getattr(jinja2_filters, f)
+
+        first_request_flag = True
 
 
 if __name__ == '__main__':
